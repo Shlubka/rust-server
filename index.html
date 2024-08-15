@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Json-compiler</title>
+    <link rel="stylesheet" href="./css/blek1.css">
+</head>
+
+<body>
+    <div class="form-container" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <form id="myForm">
+            <div class="form-group">
+                <label for="textInput">Введите текст</label>
+                <input type="text" id="textInput" name="textInput" placeholder="Напишите что-нибудь...">
+            </div>
+            <div class="form-group">
+                <label for="dropdown">Выберите язык</label>
+                <div class="custom-dropdown">
+                    <button id="dropdownButton" type="button" onclick="toggleDropdown()">Выберите язык</button>
+                    <div id="dropdownContent" class="dropdown-content">
+                        <a href="#" onclick="selectOption('Java', 'Java')">Java</a>
+                        <a href="#" onclick="selectOption('C++', 'C++')">C++</a>
+                        <a href="#" onclick="selectOption('C', 'C')">C</a>
+                        <a href="#" onclick="selectOption('Rust', 'Rust')">Rust</a>
+                        <div id="openModalBtn">
+                            <a href="#" onclick="showLanguageAlert('Данного языка ещё нет')">Js</a>
+                            <a href="#" onclick="showLanguageAlert('Данного языка ещё нет')">Asmx86</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="submitForm()">Отправить</button>
+        </form>
+    </div>
+    <script src="./js/json1.js"></script>
+</body>
+
+</html>
