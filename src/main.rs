@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
+use rocket::http::uri::Uri;
 use rocket::serde::{json::Json, Deserialize};
 use rocket::{fs::NamedFile, response::Redirect};
 use std::path::{Path, PathBuf};
@@ -40,10 +41,11 @@ fn get_keys(data: Json<UserData<'_>>) -> Redirect {
     let promo = data.promo.map(|s| s.to_string()).unwrap_or_default();
 
     // Construct the redirect URI
-    let r_uri = format!("/lang/{}?code={}&promo={}", language, code, promo);
+    let local_link = format!("/lang/{}?code={}&promo={}", language, code, promo);
+    rocket::info!("Redirect to {local_link}");
 
     // Redirect to the constructed URI
-    Redirect::to(r_uri)
+    Redirect::to(uri!(start_logick(language, code, promo)))
 }
 
 #[get("/lang/<lang>?<code>&<promo>")]
@@ -51,6 +53,7 @@ fn start_logick(lang: &str, code: Option<&str>, promo: Option<&str>) -> String {
     // Return a formatted string containing the query parameters
     let code = code.unwrap_or("");
     let promo = promo.unwrap_or("");
+    rocket::info!("Enter in logika",);
     format!(
         "Lang = \"{}\"; \nCode = \"{}\" \nPromoCode = \"{}\"",
         lang, code, promo
