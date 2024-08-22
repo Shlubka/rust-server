@@ -54,18 +54,24 @@ async function submitForm() {
   const data = {
     language: selectedOption,
     code: textInput,
-    promo: "none",
+    promo: "admin",
   };
 
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  }).then((response) => {
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
     if (response.redirected) {
       window.location.href = response.url;
+    } else if (!response.ok) {
+      throw new Error("Ошибка при отправке данных");
     }
-  });
+  } catch (error) {
+    alert("Произошла ошибка: " + error.message);
+  }
 }

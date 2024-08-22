@@ -4,17 +4,22 @@ extern crate rocket;
 use rocket::fs::{relative, FileServer};
 use rocket::response::Redirect;
 use rocket::serde::{json::Json, Deserialize};
+use rocket_dyn_templates::{context, Template};
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
-struct UserData<'r> {
-    language: &'r str,
-    code: &'r str,
-    promo: Option<&'r str>,
+struct UserData {
+    language: String,
+    code: String,
+    promo: String,
 }
 
 #[post("/lang", data = "<data>")]
-fn get_keys(data: Json<UserData<'_>>) -> Redirect {
+async fn get_keys(data: Json<UserData>) -> Redirect {
+    let mut static_promo = HashMap::new();
+    let mut found_promo = false;
+    static_promo.insert("admin", "Kirill");
     rocket::info!(
         "Received data: language = {}, code = {}, promo = {:?}",
         data.language,
@@ -24,26 +29,41 @@ fn get_keys(data: Json<UserData<'_>>) -> Redirect {
 
     let language = data.language.to_string();
     let code = data.code.to_string();
-    let promo = data.promo.map(|s| s.to_string()).unwrap_or_default();
+    let promo = data.promo.to_string();
+
+    /*for (key, value) in static_promo.iter() {
+        if promo == *key {
+            return Redirect::to(uri!(wellcom(value.to_string())));
+        }
+    }*/
 
     let local_link = format!("/lang/{}?code={}&promo={}", language, code, promo);
     rocket::info!("Redirect to {local_link}");
 
-    Redirect::to(uri!(start_logick(language)))
+    Redirect::to(uri!(start_logick(language, code, promo)))
 }
 
-#[get("/lang/<lang>")]
-fn start_logick(lang: &str) -> String {
-    rocket::info!("Enter in logika",);
+#[get("/wellcom/<user>")]
+async fn wellcom(user: String) -> Template {
+    let context = context! {
+        name: user,
+    };
+    Template::render("wellcom", &context)
+}
+
+#[get("/lang/<lang>?<code>&<promo>")]
+async fn start_logick(lang: &str, code: &str, promo: &str) -> String {
+    rocket::info!("Enter in logika");
     format!(
         "Lang = \"{}\"; \nCode = \"{}\" \nPromoCode = \"{}\"",
-        lang, "code", "promo"
+        lang, code, promo
     )
 }
 
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .mount("/", routes![/*index, home,, files*/ get_keys, start_logick])
-        .mount("/", FileServer::from(relative!("static")))
+        .attach(Template::fairing())
+        .mount("/", routes![get_keys, wellcom, start_logick])
+        .mount("/", FileServer::from(relative!("/static")))
 }
