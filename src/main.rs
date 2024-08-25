@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
+use chrono::prelude::*;
 use rocket::fs::NamedFile;
 use rocket::fs::{relative, FileServer};
 use rocket::response::Redirect;
@@ -11,7 +12,6 @@ use std::io;
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::process::Command;
-use chrono::Local;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -59,7 +59,9 @@ async fn start_logick(lang: &str, code: &str, promo: &str) -> Result<Redirect, i
         .to_str()
         .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Invalid file path"))?;
 
-    Ok(Redirect::to(uri!(upload_file("test.json"))))
+    let output_file_name = file_path.file_stem().unwrap().to_str().unwrap();
+    let output_file_path = format!("{}.json", output_file_name);
+    Ok(Redirect::to(uri!(upload_file(output_file_path))))
 }
 
 #[get("/<path>")]
@@ -73,22 +75,13 @@ fn rocket() -> _ {
     rocket::build()
         .attach(Template::fairing())
         .mount("/", routes![get_keys, wellcom, start_logick, upload_file])
-        .mount("/", FileServer::from(relative!("/static")))
+        .mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
 }
 
 async fn processing(lang: &str, code: &str) -> Result<PathBuf, io::Error> {
     // Получаем текущее время
-    let now = Local::now();
-    let timestamp = format!(
-        "{}-{}-{}-{}-{}-{}-{}",
-        now.year_ce(),
-        now.month(),
-        now.day(),
-        now.hour(),
-        now.minute(),
-        now.second(),
-        now.timestamp_subsec_millis()
-    );
+    let now: DateTime<Utc> = Utc::now();
+    let timestamp = now.format("%Y-%m-%d-%H-%M-%S-%3f").to_string();
     let file_name = "example";
     let initial_extension = match lang {
         "C" => "c",
