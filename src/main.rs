@@ -2,8 +2,8 @@
 extern crate rocket;
 
 use chrono::prelude::*;
-use rocket::fs::NamedFile;
 use rocket::fs::FileServer;
+//use rocket::fs::NamedFile;
 use rocket::response::Redirect;
 use rocket::serde::{json::Json, Deserialize};
 use rocket_dyn_templates::{context, Template};
@@ -13,9 +13,9 @@ use std::path::PathBuf;
 use tokio::fs;
 use tokio::process::Command;
 
-use std::{io::ErrorKind, path::Path};
 use rocket::http::Status;
 use rocket_download_response::DownloadResponse;
+use std::{io::ErrorKind, path::Path};
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -64,7 +64,7 @@ async fn start_logick(lang: &str, code: &str, promo: &str) -> Result<Redirect, i
         .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Invalid file path"))?;
 
     let output_file_name = file_path.file_stem().unwrap().to_str().unwrap();
-    let output_file_path = format!("{}.json", output_file_name);
+    let output_file_path = format!("outfiles/{}.json", output_file_name);
     Ok(Redirect::to(uri!(download_file(output_file_path))))
 }
 
@@ -79,13 +79,15 @@ async fn download_file(path: &str) -> Result<DownloadResponse, Status> {
     //let path = Path::join(Path::new("examples"), Path::join(Path::new("images"), "image(貓).jpg"));
     let path1 = Path::new(path);
 
-    DownloadResponse::from_file(path1, None::<String>, None).await.map_err(|err| {
-        if err.kind() == ErrorKind::NotFound {
-            Status::NotFound
-        } else {
-            Status::InternalServerError
-        }
-    })
+    DownloadResponse::from_file(path1, None::<String>, None)
+        .await
+        .map_err(|err| {
+            if err.kind() == ErrorKind::NotFound {
+                Status::NotFound
+            } else {
+                Status::InternalServerError
+            }
+        })
 }
 
 #[launch]
@@ -93,8 +95,11 @@ fn rocket() -> _ {
     rocket::build()
         .attach(Template::fairing())
         .mount("/", routes![get_keys, wellcom, start_logick, download_file])
-        //.mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
-        .mount("/", FileServer::from("/home/kira/webpenis/rust-server/static")) //ментяь перед отправкой на сервер
+        .mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
+                                                                       /*.mount(
+                                                                           "/",
+                                                                           FileServer::from("/home/kira/webpenis/rust-server/static"),
+                                                                       ) */
 }
 
 async fn processing(lang: &str, code: &str) -> Result<PathBuf, io::Error> {
@@ -110,7 +115,7 @@ async fn processing(lang: &str, code: &str) -> Result<PathBuf, io::Error> {
         _ => "broken",
     };
 
-    let file_path = format!("{}-{}.{}", timestamp, file_name, initial_extension);
+    let file_path = format!("input/{}-{}.{}", timestamp, file_name, initial_extension);
 
     // Записываем код в файл
     fs::write(&file_path, code).await?;
