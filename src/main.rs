@@ -3,7 +3,7 @@ extern crate rocket;
 
 use chrono::prelude::*;
 use rocket::fs::NamedFile;
-use rocket::fs::{relative, FileServer};
+use rocket::fs::FileServer;
 use rocket::response::Redirect;
 use rocket::serde::{json::Json, Deserialize};
 use rocket_dyn_templates::{context, Template};
@@ -12,6 +12,10 @@ use std::io;
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::process::Command;
+
+use std::{io::ErrorKind, path::Path};
+use rocket::http::Status;
+use rocket_download_response::DownloadResponse;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -61,21 +65,36 @@ async fn start_logick(lang: &str, code: &str, promo: &str) -> Result<Redirect, i
 
     let output_file_name = file_path.file_stem().unwrap().to_str().unwrap();
     let output_file_path = format!("{}.json", output_file_name);
-    Ok(Redirect::to(uri!(upload_file(output_file_path))))
+    Ok(Redirect::to(uri!(download_file(output_file_path))))
 }
 
-#[get("/<path>")]
-async fn upload_file(path: &str) -> Result<NamedFile, io::Error> {
+/*#[get("/<path>")]
+async fn download_file(path: &str) -> Result<NamedFile, io::Error> {
     println!("path: {path}");
     NamedFile::open(path).await
+}*/
+
+#[get("/<path>")]
+async fn download_file(path: &str) -> Result<DownloadResponse, Status> {
+    //let path = Path::join(Path::new("examples"), Path::join(Path::new("images"), "image(貓).jpg"));
+    let path1 = Path::new(path);
+
+    DownloadResponse::from_file(path1, None::<String>, None).await.map_err(|err| {
+        if err.kind() == ErrorKind::NotFound {
+            Status::NotFound
+        } else {
+            Status::InternalServerError
+        }
+    })
 }
 
 #[launch]
 fn rocket() -> _ {
     rocket::build()
         .attach(Template::fairing())
-        .mount("/", routes![get_keys, wellcom, start_logick, upload_file])
-        .mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
+        .mount("/", routes![get_keys, wellcom, start_logick, download_file])
+        //.mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
+        .mount("/", FileServer::from("/home/kira/webpenis/rust-server/static")) //ментяь перед отправкой на сервер
 }
 
 async fn processing(lang: &str, code: &str) -> Result<PathBuf, io::Error> {
