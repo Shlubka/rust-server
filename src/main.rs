@@ -95,7 +95,8 @@ fn rocket() -> _ {
     rocket::build()
         .attach(Template::fairing())
         .mount("/", routes![get_keys, wellcom, start_logick, download_file])
-        .mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
+        .mount("/", FileServer::from("./webpenis/static/"))
+        //.mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
                                                                        /*.mount(
                                                                            "/",
                                                                            FileServer::from("/home/kira/webpenis/rust-server/static"),
