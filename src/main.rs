@@ -1,16 +1,17 @@
 #[macro_use]
 extern crate rocket;
 
+use std::fs::File;
+use std::io::prelude::*;
+
 use chrono::prelude::*;
 use rocket::fs::FileServer;
-//use rocket::fs::NamedFile;
 use rocket::response::Redirect;
 use rocket::serde::{json::Json, Deserialize};
 use rocket_dyn_templates::{context, Template};
 use std::collections::HashMap;
 use std::io;
 use std::path::PathBuf;
-use tokio::fs;
 use tokio::process::Command;
 
 use rocket::http::Status;
@@ -68,15 +69,18 @@ async fn start_logick(lang: &str, code: &str, promo: &str) -> Result<Redirect, i
     Ok(Redirect::to(uri!(download_file(output_file_path))))
 }
 
-/*#[get("/<path>")]
-async fn download_file(path: &str) -> Result<NamedFile, io::Error> {
-    println!("path: {path}");
-    NamedFile::open(path).await
-}*/
+#[options("/<_..>")]
+fn options() -> Status {
+    rocket::info!("Handling OPTIONS request");
+    let mut response = rocket::Response::new();
+    response.set_header(rocket::http::Header::new("Access-Control-Allow-Origin", "*"));
+    response.set_header(rocket::http::Header::new("Access-Control-Allow-Methods", "GET, POST, OPTIONS"));
+    response.set_header(rocket::http::Header::new("Access-Control-Allow-Headers", "X-Requested-With, Content-Type"));
+    Status::Ok
+}
 
 #[get("/<path>")]
 async fn download_file(path: &str) -> Result<DownloadResponse, Status> {
-    //let path = Path::join(Path::new("examples"), Path::join(Path::new("images"), "image(貓).jpg"));
     let path1 = Path::new(path);
 
     DownloadResponse::from_file(path1, None::<String>, None)
@@ -94,17 +98,12 @@ async fn download_file(path: &str) -> Result<DownloadResponse, Status> {
 fn rocket() -> _ {
     rocket::build()
         .attach(Template::fairing())
-        .mount("/", routes![get_keys, wellcom, start_logick, download_file])
-        .mount("/", FileServer::from("./webpenis/static/"))
-        //.mount("/", FileServer::from("/home/webserv/webpenis/static")) //ментяь перед отправкой на сервер
-                                                                       /*.mount(
-                                                                           "/",
-                                                                           FileServer::from("/home/kira/webpenis/rust-server/static"),
-                                                                       ) */
+        .mount("/", routes![get_keys, wellcom, start_logick, download_file, options])
+        .mount("/", FileServer::from("./static/"))
 }
 
 async fn processing(lang: &str, code: &str) -> Result<PathBuf, io::Error> {
-    // Получаем текущее время
+    rocket::info!("get time");
     let now: DateTime<Utc> = Utc::now();
     let timestamp = now.format("%Y-%m-%d-%H-%M-%S-%3f").to_string();
     let file_name = "example";
@@ -118,10 +117,12 @@ async fn processing(lang: &str, code: &str) -> Result<PathBuf, io::Error> {
 
     let file_path = format!("input/{}-{}.{}", timestamp, file_name, initial_extension);
 
-    // Записываем код в файл
-    fs::write(&file_path, code).await?;
+    rocket::info!("wirte into file");
+    let mut file = File::create(&file_path)?;
+    rocket::info!("file created");
+    file.write_all(code.as_bytes())?;
 
-    // Выполняем команду
+    rocket::info!("execute program");
     let output = Command::new("./json-compiler")
         .arg(lang)
         .arg(&file_path)

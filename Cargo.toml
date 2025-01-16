@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
+cors = "0.1.0"
 json = "0.12.4"
+regex = "1.11.1"
 rocket = { version = "0.5.1", features = ["json"] }
 rocket-download-response = "0.5.4"
 rocket_dyn_templates = { version = "0.1.0", features = ["handlebars"] }
